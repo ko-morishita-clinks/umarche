@@ -24,7 +24,9 @@ class OwnersController extends Controller
      */
     public function index()
     {
-        dd('オーナーです');
+        $owners = Owner::select('name', 'email', 'created_at')->get();
+
+        return view('admin.owners.index', compact('owners'));
     }
 
     /**
