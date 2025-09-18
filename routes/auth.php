@@ -59,5 +59,6 @@ Route::middleware('auth:users')->group(function () {
                 ->name('logout');
 
     Route::get('/', [ItemController::class, 'index'])->name('items.index');
+    Route::get('show/{item}', [ItemController::class, 'show'])->name('items.show');
 
 });
