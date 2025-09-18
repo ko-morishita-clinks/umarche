@@ -10,6 +10,9 @@ use App\Http\Controllers\Owner\Auth\PasswordController;
 use App\Http\Controllers\Owner\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Owner\Auth\RegisteredUserController;
 use App\Http\Controllers\Owner\Auth\VerifyEmailController;
+use App\Http\Controllers\Owner\ShopController;
+use App\Http\Controllers\Owner\ImageController;
+use App\Http\Controllers\Owner\ProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,21 +26,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('owner.welcome');
-});
-
 Route::get('/dashboard', function () {
     return view('owner.dashboard');
 })->middleware(['auth:owners', 'verified'])->name('dashboard');
 
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-                ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store']);
-
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
                 ->name('login');
 
@@ -77,4 +71,15 @@ Route::middleware('auth:owners')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
+    
+    Route::prefix('shops')->
+    middleware('auth:owners')->group(function(){
+        Route::get('index', [ShopController::class, 'index'])->name('shops.index');
+        Route::get('edit/{shop}', [ShopController::class, 'edit'])->name('shops.edit');
+        Route::post('update/{shop}', [ShopController::class, 'update'])->name('shops.update');
+    });
+
+    Route::resource('images', ImageController::class)->except(['show']);
+
+    Route::resource('products', ProductController::class)->except(['show']);
 });
