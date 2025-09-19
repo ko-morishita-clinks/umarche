@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Image;
 use App\Models\Product;
-use App\Http\Requests\UploadImageRequest;
+use App\Http\Requests\Owner\UploadImageRequest;
+use App\Http\Requests\Owner\UpdateImageRequest;
 use App\Services\ImageService;
 
 class ImageController extends Controller
@@ -16,19 +17,7 @@ class ImageController extends Controller
     public function __construct()
     {
         $this->middleware('auth:owners');
-
-        $this->middleware(function ($request, $next) {
-
-            $id = $request->route()->parameter('image'); 
-            if(!is_null($id)){ 
-            $imagesOwnerId = Image::findOrFail($id)->owner->id;
-                $imageId = (int)$imagesOwnerId; 
-                if($imageId !== Auth::id()){ 
-                    abort(404);
-                }
-            }
-            return $next($request);
-        });
+        $this->middleware('ensure.image.owner')->only(['edit', 'update', 'destroy']);
     } 
 
     /**
@@ -67,11 +56,8 @@ class ImageController extends Controller
         $imageFiles = $request->file('files');
         if(!is_null($imageFiles)){
             foreach($imageFiles as $imageFile){
-                $fileNameToStore = ImageService::upload($imageFile, 'products');    
-                Image::create([
-                    'owner_id' => Auth::id(),
-                    'filename' => $fileNameToStore  
-                ]);
+                $fileNameToStore = ImageService::upload($imageFile, 'products');
+                Image::createForOwner(Auth::id(), $fileNameToStore);
             }
         }
 
@@ -100,15 +86,10 @@ class ImageController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UpdateImageRequest $request, $id)
     {
-        $request->validate([
-            'title' => 'string|max:50'
-        ]);
-
         $image = Image::findOrFail($id);
-        $image->title = $request->title;
-        $image->save();
+        $image->updateTitle($request->title);
 
         return redirect()
         ->route('owner.images.index')
@@ -125,41 +106,7 @@ class ImageController extends Controller
     public function destroy($id)
     {
         $image = Image::findOrFail($id);
-
-        $imageInProducts = Product::where('image1', $image->id)
-        ->orWhere('image2', $image->id)
-        ->orWhere('image3', $image->id)
-        ->orWhere('image4', $image->id)
-        ->get();
-
-        if($imageInProducts){
-            $imageInProducts->each(function($product) use($image){
-                if($product->image1 === $image->id){
-                    $product->image1 = null;
-                    $product->save();
-                }
-                if($product->image2 === $image->id){
-                    $product->image2 = null;
-                    $product->save();
-                }
-                if($product->image3 === $image->id){
-                    $product->image3 = null;
-                    $product->save();
-                }
-                if($product->image4 === $image->id){
-                    $product->image4 = null;
-                    $product->save();
-                }
-            });
-        }
-
-        $filePath = 'public/products/' . $image->filename;
-
-        if(Storage::exists($filePath)){
-            Storage::delete($filePath);
-        }
-
-        Image::findOrFail($id)->delete(); 
+        $image->deleteWithRelations();
 
         return redirect()
         ->route('owner.images.index')

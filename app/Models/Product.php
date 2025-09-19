@@ -10,6 +10,7 @@ use App\Models\SecondaryCategory;
 use App\Models\Image;
 use App\Models\Stock;
 use App\Models\User;
+use App\Constants\Common;
 
 class Product extends Model
 {
@@ -141,5 +142,62 @@ class Product extends Model
     public function stockQuantity(): int
     {
         return $this->stock()->sum('quantity');
+    }
+
+    public static function createWithStock(array $data): self
+    {
+        return DB::transaction(function () use ($data) {
+            $product = self::create([
+                'name'                  => $data['name'],
+                'information'           => $data['information'],
+                'price'                 => $data['price'],
+                'sort_order'            => $data['sort_order'] ?? null,
+                'shop_id'               => $data['shop_id'],
+                'secondary_category_id' => $data['category'],
+                'image1'                => $data['image1'] ?? null,
+                'image2'                => $data['image2'] ?? null,
+                'image3'                => $data['image3'] ?? null,
+                'image4'                => $data['image4'] ?? null,
+                'is_selling'            => $data['is_selling'],
+            ]);
+
+            Stock::create([
+                'product_id' => $product->id,
+                'type'       => 1,
+                'quantity'   => $data['quantity'],
+            ]);
+
+            return $product;
+        });
+    }
+
+    public function updateWithStock(array $data): void
+    {
+        DB::transaction(function () use ($data) {
+            $this->update([
+                'name'                  => $data['name'],
+                'information'           => $data['information'],
+                'price'                 => $data['price'],
+                'sort_order'            => $data['sort_order'] ?? null,
+                'shop_id'               => $data['shop_id'],
+                'secondary_category_id' => $data['category'],
+                'image1'                => $data['image1'] ?? null,
+                'image2'                => $data['image2'] ?? null,
+                'image3'                => $data['image3'] ?? null,
+                'image4'                => $data['image4'] ?? null,
+                'is_selling'            => $data['is_selling'],
+            ]);
+
+            $newQuantity = $data['quantity'];
+            if ($data['type'] === Common::PRODUCT_LIST['reduce']) {
+                $newQuantity *= -1;
+            }
+
+            Stock::create([
+                'product_id' => $this->id,
+                'type'       => $data['type'],
+                'quantity'   => $newQuantity,
+            ]);
+        }, 2);
     }
 }

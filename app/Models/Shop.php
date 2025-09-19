@@ -29,4 +29,17 @@ class Shop extends Model
         return $this->hasMany(Product::class);
     }
 
+    public function updateWithImage(array $data, $imageFile = null): bool
+    {
+        $this->name        = $data['name'];
+        $this->information = $data['information'];
+        $this->is_selling  = $data['is_selling'];
+
+        if ($imageFile && $imageFile->isValid()) {
+            $this->filename = \App\Services\ImageService::upload($imageFile, 'shops');
+        }
+
+        return $this->save();
+    }
+
 }
