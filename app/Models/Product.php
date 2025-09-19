@@ -137,4 +137,9 @@ class Product extends Model
             return;
         }
     }
+
+    public function stockQuantity(): int
+    {
+        return $this->stock()->sum('quantity');
+    }
 }

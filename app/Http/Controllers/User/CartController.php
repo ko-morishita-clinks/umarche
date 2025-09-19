@@ -9,8 +9,10 @@ use App\Models\Cart;
 use App\Models\User;
 use App\Models\Stock;
 use App\Services\CartService;
+use App\Services\CheckoutService;
 use App\Jobs\SendThanksMail;
 use App\Jobs\SendOrderedMail;
+use App\Http\Requests\User\AddToCartRequest;
 
 class CartController extends Controller
 {
@@ -30,20 +32,16 @@ class CartController extends Controller
 
     public function add(Request $request)
     {
-        $itemInCart = Cart::where('product_id', $request->product_id)
-        ->where('user_id', Auth::id())->first();
-
-        if($itemInCart){
-            $itemInCart->quantity += $request->quantity;
-            $itemInCart->save();
-
-        } else {
-            Cart::create([
-                'user_id' => Auth::id(),
+        $userId = Auth::id();
+        Cart::updateOrCreate(
+            [
+                'user_id' => $userId,
                 'product_id' => $request->product_id,
-                'quantity' => $request->quantity
-            ]);
-        }
+            ],
+            [
+                'quantity' => \DB::raw('quantity + ' . (int) $request->quantity),
+            ]
+        );
         
         return redirect()->route('user.cart.index');
     }
@@ -57,56 +55,18 @@ class CartController extends Controller
         return redirect()->route('user.cart.index');
     }
 
-    public function checkout()
+    public function checkout(CheckoutService $checkoutService)
     {
-        $user = User::findOrFail(Auth::id());
+        $user = Auth::user();
         $products = $user->products;
-        
-        $lineItems = [];
-        foreach($products as $product){
-            $quantity = '';
-            $quantity = Stock::where('product_id', $product->id)->sum('quantity');
 
-            if($product->pivot->quantity > $quantity){
-                return redirect()->route('user.cart.index');
-            } else { 
-                $lineItem = [
-                    'price_data' => [
-                        'unit_amount' => $product->price,
-                        'currency' => 'jpy',
-                        'product_data' => [
-                            'name' => $product->name,
-                            'description' => $product->information,
-                        ],
-                    ],
-                    'quantity' => $product->pivot->quantity,
-                ];
-                array_push($lineItems, $lineItem);    
-            }
-        }
+        $session = $checkoutService->createCheckoutSession($products);
 
-        foreach($products as $product){
-            Stock::create([
-                'product_id' => $product->id,
-                'type' => \Constant::PRODUCT_LIST['reduce'],
-                'quantity' => $product->pivot->quantity * -1
-            ]);
-        }
-
-        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
-
-        $session = \Stripe\Checkout\Session::create([
-            'payment_method_types' => ['card'],
-            'line_items' => [$lineItems],
-            'mode' => 'payment',
-            'success_url' => route('user.cart.success'),
-            'cancel_url' => route('user.cart.cancel'),
+        return view('user.checkout', [
+            'session'   => $session,
+            'publicKey' => config('services.stripe.key'),
         ]);
-
-        $publicKey = env('STRIPE_PUBLIC_KEY');
-
-        return view('user.checkout', 
-            compact('session', 'publicKey'));
+        
     }
 
     public function success()
@@ -116,8 +76,7 @@ class CartController extends Controller
         $user = User::findOrFail(Auth::id());
 
         SendThanksMail::dispatch($products, $user);
-        foreach($products as $product)
-        {
+        foreach($products as $product){
             SendOrderedMail::dispatch($product, $user);
         }
 
