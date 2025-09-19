@@ -99,8 +99,8 @@
   </div>
 
   <div class="modal micromodal-slide" id="modal-1" aria-hidden="true">
-    <div class="modal__overlay" tabindex="-1" data-micromodal-close>
-      <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="modal-1-title">
+    <div class="modal__overlay z-[9998]" tabindex="-1" data-micromodal-close>
+      <div class="modal__container z-[9999]" role="dialog" aria-modal="true" aria-labelledby="modal-1-title">
         <header class="modal__header">
           <h2 class="text-xl text-gray-700" id="modal-1-title">
             {{ $product->shop->name }}
