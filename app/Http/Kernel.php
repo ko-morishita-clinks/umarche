@@ -63,5 +63,9 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'ensure.product.available' => \App\Http\Middleware\EnsureProductIsAvailable::class,
+        'ensure.image.owner' => \App\Http\Middleware\EnsureImageBelongsToOwner::class,
+        'ensure.shop.owner' => \App\Http\Middleware\EnsureShopBelongsToOwner::class,
+        'ensure.product.owner' => \App\Http\Middleware\EnsureProductBelongsToOwner::class,
     ];
 }

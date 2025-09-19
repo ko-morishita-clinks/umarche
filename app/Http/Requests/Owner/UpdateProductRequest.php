@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Owner;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ProductRequest extends FormRequest
+class UpdateProductRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,6 +25,7 @@ class ProductRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:50',
+            'type' => 'required|in:1,2',
             'information' => 'required|string|max:1000',
             'price' => 'required|integer',
             'sort_order' => 'nullable|integer',
@@ -36,6 +37,13 @@ class ProductRequest extends FormRequest
             'image3' => 'nullable|exists:images,id',
             'image4' => 'nullable|exists:images,id',
             'is_selling' => 'required|boolean'
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'current_quantity.required' => '在庫数チェック用の数量が不足しています。',
         ];
     }
 }

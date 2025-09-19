@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Owner; // Eloquent エロクアント
-use App\Models\Shop;
-use Illuminate\Support\Facades\DB; // QueryBuilder クエリビルダ
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Throwable;
 use Illuminate\Support\Facades\Log;
+use App\Models\Owner;
+use App\Models\Shop;
+use App\Http\Requests\Admin\StoreOwnerRequest;
+use App\Http\Requests\Admin\UpdateOwnerRequest;
+use Carbon\Carbon;
+use Throwable;
 
 
 class OwnersController extends Controller
@@ -48,31 +50,11 @@ class OwnersController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(StoreOwnerRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:owners',
-            'password' => 'required|string|confirmed|min:8',
-        ]);
-
-        try{
-            DB::transaction(function () use($request) {
-                $owner = Owner::create([
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                ]);
-
-                Shop::create([
-                    'owner_id' => $owner->id,
-                    'name' => '店名を入力してください',
-                    'information' => '',
-                    'filename' => '',
-                    'is_selling' => true
-                ]);
-            }, 2);
-        }catch(Throwable $e){
+        try {
+            Owner::createWithShop($request->validated());
+        } catch (Throwable $e) {
             Log::error($e);
             throw $e;
         }
@@ -102,13 +84,10 @@ class OwnersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UpdateOwnerRequest $request, $id)
     {
         $owner = Owner::findOrFail($id);
-        $owner->name = $request->name;
-        $owner->email = $request->email;
-        $owner->password = Hash::make($request->password);
-        $owner->save();
+        $owner->updateWithPassword($request->validated());
 
         return redirect()
         ->route('admin.owners.index')

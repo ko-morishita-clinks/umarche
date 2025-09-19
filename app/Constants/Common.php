@@ -26,4 +26,6 @@ class Common
     'older' => self::ORDER_OLDER
   ];
 
+  const MAX_PURCHASE_QUANTITY = 9;
+
 }
