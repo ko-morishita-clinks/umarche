@@ -33,9 +33,11 @@ class ItemController extends Controller
         
     public function index(Request $request)
     {
-        Mail::to('test@example.com')
-        ->send(new TestMail());
-        
+        // Mail::to('test@example.com')
+        // ->send(new TestMail());
+
+        SendThanksMail::dispatch();
+
         $categories = PrimaryCategory::with('secondary')
         ->get();
 
