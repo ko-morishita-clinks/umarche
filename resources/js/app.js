@@ -1,6 +1,6 @@
 import './bootstrap';
-
 import './swiper';
+import './deleteConfirm';
 
 import Alpine from 'alpinejs';
 

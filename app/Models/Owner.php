@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Shop;
 use App\Models\Image;
 
@@ -42,6 +44,36 @@ class Owner extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public static function createWithShop(array $data): self
+    {
+        return DB::transaction(function () use ($data) {
+            $owner = self::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
+
+            $owner->shop()->create([
+                'name' => '店名を入力してください',
+                'information' => '',
+                'filename' => '',
+                'is_selling' => true,
+            ]);
+
+            return $owner;
+        });
+    }
+
+    public function updateWithPassword(array $data): bool
+    {
+        $this->name = $data['name'];
+        $this->email = $data['email'];
+        if (!empty($data['password'])) {
+            $this->password = Hash::make($data['password']);
+        }
+        return $this->save();
+    }
 
     public function shop()
     {
